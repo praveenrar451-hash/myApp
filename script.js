@@ -2,7 +2,6 @@
 const SUPABASE_URL = 'https://mgrvkfcpuxubhzmylewv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7BjPkCUaH1EgtAdNWs7gSA_7dBN-98n';
 
-// Initialize Supabase Client (v2 CDN script use ho raha hai)
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
@@ -18,16 +17,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const targetId = icon.getAttribute('data-target');
             if (!targetId) return;
 
-            // Remove active classes from views and navs
             document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
             document.querySelectorAll('.bottom-nav i').forEach(i => i.classList.remove('active'));
 
-            // Activate target view
             document.getElementById(targetId).classList.add('active');
             if(icon.tagName === 'I') icon.classList.add('active');
 
-            // Refresh data based on view
-            if(targetId === 'view-profile') loadMyProfile();
+            if(targetId === 'view-profile') loadMyProfileData();
             if(targetId === 'view-search') loadExploreGrid();
             if(targetId === 'view-home') loadHomeFeed();
         });
@@ -69,64 +65,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- 3. AUTHENTICATION (LOGIN / SIGNUP) ---
+// --- 3. SEAMLESS USERNAME + PASSWORD LOGIN / AUTO-SIGNUP ---
 const loginForm = document.getElementById('login-form');
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const emailInput = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
+    const usernameInput = document.getElementById('login-username').value.trim();
+    const passwordInput = document.getElementById('login-password').value;
 
-    // Check if input is email or username
-    let email = emailInput;
-    if (!email.includes('@')) {
-        // Fetch email associated with username from profiles
-        const { data: profileData } = await supabaseClient
-            .from('profiles')
-            .select('id')
-            .eq('username', emailInput)
-            .single();
-            
-        if (!profileData) {
-            alert('User not found!');
-            return;
-        }
-        // For demo fallback if authenticating via email
-        email = emailInput + '@app.com'; 
-    }
-
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) {
-        alert('Login failed: ' + error.message);
-    } else {
-        currentUser = data.user;
-        transitionToMainApp();
-    }
-});
-
-document.getElementById('show-signup-btn').addEventListener('click', async () => {
-    const email = prompt('Enter email for new account:');
-    const password = prompt('Enter password (min 6 chars):');
-    const username = prompt('Enter unique username:');
-
-    if (!email || !password || !username) return;
-
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
-    if (error) {
-        alert('Signup error: ' + error.message);
+    if (!usernameInput || !passwordInput) {
+        alert('Please enter both username and password.');
         return;
     }
 
-    if (data.user) {
-        // Create profile row in database
-        const { error: profileError } = await supabaseClient
-            .from('profiles')
-            .insert([{ id: data.user.id, username: username, full_name: username, avatar_url: 'https://via.placeholder.com/90' }]);
+    const email = `${usernameInput.toLowerCase().replace(/[^a-z0-9]/g, '')}@app.com`;
 
-        if (profileError) {
-            alert('Profile creation failed: ' + profileError.message);
-        } else {
-            alert('Account created successfully! Please log in.');
+    // Try logging in first
+    let { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: passwordInput });
+
+    if (error) {
+        // If user doesn't exist, automatically sign them up!
+        const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password: passwordInput });
+        
+        if (signUpError) {
+            alert('Login error: ' + signUpError.message);
+            return;
         }
+
+        if (signUpData.user) {
+            currentUser = signUpData.user;
+            // Create profile row
+            await supabaseClient
+                .from('profiles')
+                .insert([{ 
+                    id: currentUser.id, 
+                    username: usernameInput, 
+                    full_name: usernameInput, 
+                    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' 
+                }]);
+            transitionToMainApp();
+        }
+    } else if (data.user) {
+        currentUser = data.user;
+        transitionToMainApp();
     }
 });
 
@@ -148,7 +128,7 @@ async function transitionToMainApp() {
 // --- 4. PROFILE MANAGEMENT & EDITING ---
 async function loadUserProfileData() {
     if (!currentUser) return;
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('id', currentUser.id)
@@ -167,7 +147,6 @@ async function loadUserProfileData() {
         document.getElementById('edit-bio').value = data.bio || '';
     }
 
-    // Load Counts (Posts, Followers, Following)
     const { count: postsCount } = await supabaseClient.from('posts').select('*', { count: 'exact', head: true }).eq('user_id', currentUser.id);
     const { count: followersCount } = await supabaseClient.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', currentUser.id);
     const { count: followingCount } = await supabaseClient.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', currentUser.id);
@@ -179,7 +158,6 @@ async function loadUserProfileData() {
     loadMyProfileGrid();
 }
 
-// Save Edit Profile Changes
 document.getElementById('btn-save-edit').addEventListener('click', async () => {
     const fullName = document.getElementById('edit-name').value;
     const username = document.getElementById('edit-username').value;
@@ -200,7 +178,7 @@ document.getElementById('btn-save-edit').addEventListener('click', async () => {
 });
 
 async function loadMyProfileGrid() {
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
         .from('posts')
         .select('*')
         .eq('user_id', currentUser.id)
@@ -217,7 +195,7 @@ async function loadMyProfileGrid() {
     }
 }
 
-// --- 5. POSTS, REELS & GALLERY UPLOAD ---
+// --- 5. POSTS & GALLERY UPLOAD ---
 function openCreateModal() {
     document.getElementById('subpage-create').classList.add('active');
     loadDeviceGalleryMock();
@@ -226,7 +204,6 @@ function openCreateModal() {
 function loadDeviceGalleryMock() {
     const galleryGrid = document.getElementById('device-gallery-grid');
     galleryGrid.innerHTML = '';
-    // Sample gallery mockup images to simulate user selecting photos/videos from phone storage
     const sampleImages = [
         'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500',
         'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=500',
@@ -264,7 +241,7 @@ document.getElementById('btn-proceed-upload').addEventListener('click', async ()
 });
 
 async function loadHomeFeed() {
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
         .from('posts')
         .select('*, profiles(username, avatar_url)')
         .order('created_at', { ascending: false });
@@ -296,7 +273,6 @@ async function loadExploreGrid() {
     const { data } = await supabaseClient.from('posts').select('*').order('created_at', { ascending: false });
     const exploreContainer = document.getElementById('explore-grid-container');
     exploreContainer.innerHTML = '';
-    // Render explore grid layout similar to Instagram explore
     if(data) {
         exploreContainer.style.display = 'grid';
         exploreContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
@@ -312,7 +288,6 @@ async function loadExploreGrid() {
     }
 }
 
-// Search users input real-time handler
 document.getElementById('search-users-input').addEventListener('input', async (e) => {
     const query = e.target.value.trim();
     const resultsContainer = document.getElementById('search-results');
@@ -431,4 +406,4 @@ async function sendMessage(text) {
     if (!error) {
         loadMessages(activeChatUser.id);
     }
-      }
+}
