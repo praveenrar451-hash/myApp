@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Web App</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="dark-theme">
+
+    <!-- LOGIN PAGE -->
+    <div id="login-page" class="page active">
+        <div class="login-container">
+            <div class="language-selector">English (India) <i class="fa-solid fa-chevron-down"></i></div>
+            <div class="insta-logo">
+                <i class="fa-brands fa-instagram"></i>
+            </div>
+            <form id="login-form">
+                <input type="text" id="login-email" placeholder="Username, email address or mobile number" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit" class="btn-primary">Log in</button>
+            </form>
+            <a href="#" class="forgot-pass">Forgotten password?</a>
+            <div class="create-account-box">
+                <button type="button" class="btn-outline" id="show-signup-btn">Create new account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER (Hidden until login) -->
+    <div id="main-app" class="page">
+        
+        <!-- TOP NAVBAR (Home / Profile) -->
+        <header class="top-nav" id="top-navbar">
+            <div class="top-left">
+                <i class="fa-solid fa-plus" id="btn-create"></i>
+            </div>
+            <div class="top-center logo-dropdown" id="nav-title-toggle">
+                <span>Instagram</span> <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="top-right">
+                <i class="fa-regular fa-heart"></i>
+                <i class="fa-brands fa-facebook-messenger" id="btn-open-chats"></i>
+            </div>
+        </header>
+
+        <!-- CONTENT VIEWS -->
+        <div class="content-body">
+            
+            <!-- HOME FEED VIEW -->
+            <div class="view-section active" id="view-home">
+                <div class="stories-container">
+                    <div class="story-item">
+                        <div class="story-ring plus"><img src="https://via.placeholder.com/60" alt=""><i class="fa-solid fa-plus"></i></div>
+                        <span>Your story</span>
+                    </div>
+                    <!-- Dynamic Stories will load here -->
+                </div>
+                <div class="posts-feed" id="posts-feed-container">
+                    <!-- Dynamic Posts from database -->
+                </div>
+            </div>
+
+            <!-- REELS VIEW -->
+            <div class="view-section" id="view-reels">
+                <div class="reels-header">
+                    <span>Reels</span>
+                    <span class="text-muted">Friends</span>
+                </div>
+                <div class="reels-container" id="reels-feed-container">
+                    <!-- Dynamic Reels -->
+                </div>
+            </div>
+
+            <!-- SEARCH / EXPLORE VIEW -->
+            <div class="view-section" id="view-search">
+                <div class="search-bar-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="search-users-input" placeholder="Search users...">
+                </div>
+                <div class="search-results-list" id="search-results"></div>
+                <div class="explore-grid" id="explore-grid-container">
+                    <!-- Dynamic Explore Grid -->
+                </div>
+            </div>
+
+            <!-- PROFILE VIEW -->
+            <div class="view-section" id="view-profile">
+                <div class="profile-header-info">
+                    <div class="profile-pic-area">
+                        <img id="user-profile-avatar" src="https://via.placeholder.com/90" alt="">
+                        <div class="note-bubble">Note...</div>
+                    </div>
+                    <div class="profile-stats">
+                        <div class="stat-box">
+                            <span id="stat-posts-count">0</span>
+                            <span class="stat-label">posts</span>
+                        </div>
+                        <div class="stat-box" id="btn-open-followers">
+                            <span id="stat-followers-count">0</span>
+                            <span class="stat-label">followers</span>
+                        </div>
+                        <div class="stat-box" id="btn-open-following">
+                            <span id="stat-following-count">0</span>
+                            <span class="stat-label">following</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-bio-section">
+                    <span id="profile-display-username">username</span>
+                </div>
+                <div class="profile-action-buttons">
+                    <button class="btn-dark" id="btn-edit-profile-open">Edit profile</button>
+                    <button class="btn-dark">Share profile</button>
+                    <button class="btn-dark icon-only"><i class="fa-solid fa-user-plus"></i></button>
+                </div>
+                <div class="profile-tabs">
+                    <i class="fa-solid fa-table-cells active"></i>
+                    <i class="fa-solid fa-clapperboard"></i>
+                    <i class="fa-solid fa-id-card"></i>
+                </div>
+                <div class="profile-posts-grid" id="my-profile-grid">
+                    <!-- User's posts -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- EDIT PROFILE SUB-PAGE -->
+        <div class="sub-page" id="subpage-edit-profile">
+            <div class="sub-header">
+                <i class="fa-solid fa-arrow-left" id="btn-close-edit"></i>
+                <span>Edit profile</span>
+                <i class="fa-solid fa-check" id="btn-save-edit"></i>
+            </div>
+            <div class="edit-form-body">
+                <div class="text-center">
+                    <img id="edit-avatar-preview" src="https://via.placeholder.com/90" class="rounded-circle">
+                    <p class="text-blue">Edit picture or avatar</p>
+                </div>
+                <div class="input-group">
+                    <label>Name</label>
+                    <input type="text" id="edit-name" placeholder="Name">
+                </div>
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" id="edit-username" placeholder="Username">
+                </div>
+                <div class="input-group">
+                    <label>Pronouns</label>
+                    <input type="text" id="edit-pronouns" placeholder="Pronouns">
+                </div>
+                <div class="input-group">
+                    <label>Bio</label>
+                    <textarea id="edit-bio" placeholder="Bio"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHAT LIST SUB-PAGE (Telegram Style) -->
+        <div class="sub-page" id="subpage-chats">
+            <div class="sub-header chat-sub-header">
+                <i class="fa-solid fa-arrow-left" id="btn-close-chats"></i>
+                <div class="chat-search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Search Chats">
+                </div>
+            </div>
+            <div class="chats-list" id="chats-list-container">
+                <!-- Chat items -->
+            </div>
+        </div>
+
+        <!-- INSIDE CHAT WINDOW -->
+        <div class="sub-page" id="subpage-chat-room">
+            <div class="sub-header chat-room-header">
+                <i class="fa-solid fa-arrow-left" id="btn-close-chatroom"></i>
+                <div class="chat-user-info">
+                    <img id="chatroom-user-pic" src="https://via.placeholder.com/40" class="rounded-circle">
+                    <div>
+                        <h4 id="chatroom-username">DINESH</h4>
+                        <span class="status">last seen recently</span>
+                    </div>
+                </div>
+                <div class="chat-room-actions">
+                    <i class="fa-solid fa-phone"></i>
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </div>
+            </div>
+            <div class="chat-messages-body" id="chat-messages-container">
+                <div class="no-messages-box">
+                    <p>No messages here yet...</p>
+                    <span>Send a message or tap the greeting below.</span>
+                    <div class="dog-sticker">🐶 Hi</div>
+                </div>
+            </div>
+            <div class="chat-input-footer">
+                <i class="fa-regular fa-face-smile"></i>
+                <input type="text" id="message-input-text" placeholder="Message">
+                <i class="fa-solid fa-paperclip"></i>
+                <i class="fa-solid fa-paper-plane" id="btn-send-message"></i>
+            </div>
+        </div>
+
+        <!-- CREATE / GALLERY POST SUB-PAGE -->
+        <div class="sub-page" id="subpage-create">
+            <div class="sub-header">
+                <i class="fa-solid fa-xmark" id="btn-close-create"></i>
+                <span>New post</span>
+                <span class="text-blue" id="btn-proceed-upload">Next</span>
+            </div>
+            <div class="gallery-preview-box">
+                <img id="selected-media-preview" src="https://via.placeholder.com/300" alt="Select Media">
+            </div>
+            <div class="gallery-selector-header">
+                <span>Recents <i class="fa-solid fa-chevron-down"></i></span>
+                <button class="btn-select-multi"><i class="fa-regular fa-images"></i> Select</button>
+            </div>
+            <div class="gallery-grid" id="device-gallery-grid">
+                <!-- Gallery items thumbnails -->
+            </div>
+            <div class="create-bottom-tabs">
+                <span class="active">POST</span>
+                <span>STORY</span>
+                <span>REEL</span>
+                <span>LIVE</span>
+            </div>
+        </div>
+
+        <!-- BOTTOM NAVIGATION BAR -->
+        <nav class="bottom-nav">
+            <i class="fa-solid fa-house active" data-target="view-home"></i>
+            <i class="fa-solid fa-clapperboard" data-target="view-reels"></i>
+            <i class="fa-regular fa-square-plus" id="nav-btn-create-open"></i>
+            <i class="fa-solid fa-magnifying-glass" data-target="view-search"></i>
+            <div class="nav-profile-pic" data-target="view-profile">
+                <img id="nav-user-avatar" src="https://via.placeholder.com/24" alt="">
+            </div>
+        </nav>
+
+    </div>
+
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.com/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+</body>
+</html>
