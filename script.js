@@ -5,6 +5,8 @@ const SUPABASE_ANON_KEY = 'sb_publishable_7BjPkCUaH1EgtAdNWs7gSA_7dBN-98n';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
+let activeChatUser = null;
+let realtimeChannel = null;
 
 // --- 2. NAVIGATION & ROUTING LOGIC ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(icon.tagName === 'I') icon.classList.add('active');
 
             if(targetId === 'view-profile') loadMyProfileData();
-            if(targetId === 'view-search') loadExploreGrid();
+            if(targetId === 'view-search') loadAllJoinedUsers();
             if(targetId === 'view-home') loadHomeFeed();
         });
     });
@@ -49,11 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Chat Room Close
     document.getElementById('btn-close-chatroom').addEventListener('click', () => {
         document.getElementById('subpage-chat-room').classList.remove('active');
+        if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
     });
 
-    // Create Post / Gallery Modal Open
-    document.getElementById('btn-create').addEventListener('click', openCreateModal);
-    document.getElementById('nav-btn-create-open').addEventListener('click', openCreateModal);
+    // Create Post / Gallery Modal Open (Opens Real Phone Gallery!)
+    document.getElementById('btn-create').addEventListener('click', openPhoneGalleryForPost);
+    document.getElementById('nav-btn-create-open').addEventListener('click', openPhoneGalleryForPost);
     document.getElementById('btn-close-create').addEventListener('click', () => {
         document.getElementById('subpage-create').classList.remove('active');
     });
@@ -63,9 +66,37 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('subpage-chats').classList.add('active');
         loadChatsList();
     });
+
+    // Profile Picture Change Trigger
+    document.getElementById('edit-avatar-preview').addEventListener('click', () => {
+        document.getElementById('avatar-file-picker').click();
+    });
+
+    // Handle Profile Picture File Selection
+    document.getElementById('avatar-file-picker').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = async function(uploadEvent) {
+                const base64Image = uploadEvent.target.result;
+                document.getElementById('edit-avatar-preview').src = base64Image;
+                document.getElementById('user-profile-avatar').src = base64Image;
+                document.getElementById('nav-user-avatar').src = base64Image;
+
+                // Update in Supabase Database instantly
+                await supabaseClient
+                    .from('profiles')
+                    .update({ avatar_url: base64Image })
+                    .eq('id', currentUser.id);
+
+                alert('Profile picture updated successfully!');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
 });
 
-// --- 3. SEAMLESS FIXED LOGIN (No Rate Limit Error) ---
+// --- 3. LOGIN LOGIC ---
 const loginForm = document.getElementById('login-form');
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -78,21 +109,19 @@ loginForm.addEventListener('submit', async (e) => {
     }
 
     if (passwordInput !== '272009') {
-        alert('Incorrect password!');
+        alert('Incorrect password! Please use 272009');
         return;
     }
 
-    // Supabase me check karein ki ye user pehle se hai ya nahi
-    let { data: profileData, error } = await supabaseClient
+    let { data: profileData } = await supabaseClient
         .from('profiles')
         .select('*')
         .eq('username', usernameInput)
         .single();
 
     if (!profileData) {
-        // Agar user nahi hai, toh naya profile dummy ID ke sath bana lo bina Auth API ke rate limit ke!
         const dummyId = 'user_' + Math.random().toString(36).substring(2, 9);
-        const { data: newProf, error: insError } = await supabaseClient
+        const { data: newProf } = await supabaseClient
             .from('profiles')
             .insert([{ 
                 id: dummyId, 
@@ -103,16 +132,11 @@ loginForm.addEventListener('submit', async (e) => {
             .select()
             .single();
 
-        if (insError) {
-            currentUser = { id: dummyId, email: `${usernameInput}@app.com` };
-        } else {
-            currentUser = { id: newProf.id, email: `${usernameInput}@app.com` };
-        }
+        currentUser = { id: newProf ? newProf.id : dummyId, email: `${usernameInput}@app.com` };
     } else {
         currentUser = { id: profileData.id, email: `${usernameInput}@app.com` };
     }
 
-    // LocalStorage me session save karlo taaki refresh karne par login rahe
     localStorage.setItem('insta_current_user', JSON.stringify(currentUser));
     transitionToMainApp();
 });
@@ -202,32 +226,25 @@ async function loadMyProfileGrid() {
     }
 }
 
-// --- 5. POSTS & GALLERY UPLOAD ---
-function openCreateModal() {
-    document.getElementById('subpage-create').classList.add('active');
-    loadDeviceGalleryMock();
+// --- 5. REAL PHONE GALLERY UPLOAD FOR POSTS ---
+function openPhoneGalleryForPost() {
+    document.getElementById('device-file-picker').click();
 }
 
-function loadDeviceGalleryMock() {
-    const galleryGrid = document.getElementById('device-gallery-grid');
-    galleryGrid.innerHTML = '';
-    const sampleImages = [
-        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500',
-        'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=500',
-        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500',
-        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'
-    ];
-
-    sampleImages.forEach(url => {
-        const img = document.createElement('img');
-        img.src = url;
-        img.addEventListener('click', () => {
-            document.getElementById('selected-media-preview').src = url;
-        });
-        galleryGrid.appendChild(img);
-    });
-    document.getElementById('selected-media-preview').src = sampleImages[0];
-}
+document.getElementById('device-file-picker').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = async function(uploadEvent) {
+            const base64Image = uploadEvent.target.result;
+            
+            // Open Create view sub-page to show selected image & take caption
+            document.getElementById('subpage-create').classList.add('active');
+            document.getElementById('selected-media-preview').src = base64Image;
+        };
+        reader.readAsDataURL(file);
+    }
+});
 
 document.getElementById('btn-proceed-upload').addEventListener('click', async () => {
     const mediaUrl = document.getElementById('selected-media-preview').src;
@@ -262,7 +279,7 @@ async function loadHomeFeed() {
             postItem.style.marginBottom = '20px';
             postItem.innerHTML = `
                 <div style="display:flex; align-items:center; padding:10px; gap:10px;">
-                    <img src="${post.profiles?.avatar_url || 'https://via.placeholder.com/30'}" style="width:30px;height:30px;border-radius:50%;">
+                    <img src="${post.profiles?.avatar_url || 'https://via.placeholder.com/30'}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">
                     <span style="font-weight:600; font-size:14px;">${post.profiles?.username || 'user'}</span>
                 </div>
                 <img src="${post.image_url}" style="width:100%; max-height:450px; object-fit:cover;">
@@ -275,59 +292,59 @@ async function loadHomeFeed() {
     }
 }
 
-// --- 6. SEARCH & EXPLORE ---
-async function loadExploreGrid() {
-    const { data } = await supabaseClient.from('posts').select('*').order('created_at', { ascending: false });
-    const exploreContainer = document.getElementById('explore-grid-container');
-    exploreContainer.innerHTML = '';
-    if(data) {
-        exploreContainer.style.display = 'grid';
-        exploreContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
-        exploreContainer.style.gap = '2px';
-        data.forEach(item => {
-            const img = document.createElement('img');
-            img.src = item.image_url;
-            img.style.width = '100%';
-            img.style.aspectRatio = '1/1';
-            img.style.objectFit = 'cover';
-            exploreContainer.appendChild(img);
-        });
-    }
+// --- 6. SEARCH ALL JOINED USERS ---
+async function loadAllJoinedUsers() {
+    const { data } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .neq('id', currentUser.id);
+
+    renderSearchResults(data || []);
 }
 
 document.getElementById('search-users-input').addEventListener('input', async (e) => {
     const query = e.target.value.trim();
-    const resultsContainer = document.getElementById('search-results');
-    resultsContainer.innerHTML = '';
-
-    if (!query) return;
+    if (!query) {
+        loadAllJoinedUsers();
+        return;
+    }
 
     const { data } = await supabaseClient
         .from('profiles')
         .select('*')
         .ilike('username', `%${query}%`)
-        .limit(10);
+        .neq('id', currentUser.id);
 
-    if (data && data.length > 0) {
-        data.forEach(user => {
-            const userRow = document.createElement('div');
-            userRow.style.cssText = 'display:flex; align-items:center; padding:10px 16px; gap:12px; cursor:pointer; border-bottom:1px solid #1a1a1a;';
-            userRow.innerHTML = `
-                <img src="${user.avatar_url || 'https://via.placeholder.com/40'}" style="width:40px;height:40px;border-radius:50%;">
-                <div>
-                    <div style="font-weight:600; font-size:14px;">${user.username}</div>
-                    <div style="color:#8e8e8e; font-size:12px;">${user.full_name || ''}</div>
-                </div>
-            `;
-            userRow.addEventListener('click', () => {
-                alert(`Opening profile of ${user.username}`);
-            });
-            resultsContainer.appendChild(userRow);
-        });
-    }
+    renderSearchResults(data || []);
 });
 
-// --- 7. TELEGRAM-STYLE CHATS & MESSAGING ---
+function renderSearchResults(users) {
+    const resultsContainer = document.getElementById('search-results');
+    resultsContainer.innerHTML = '';
+
+    if (users.length === 0) {
+        resultsContainer.innerHTML = `<div style="padding:15px; color:#8e8e8e; text-align:center;">No users found</div>`;
+        return;
+    }
+
+    users.forEach(user => {
+        const userRow = document.createElement('div');
+        userRow.style.cssText = 'display:flex; align-items:center; padding:10px 16px; gap:12px; cursor:pointer; border-bottom:1px solid #1a1a1a;';
+        userRow.innerHTML = `
+            <img src="${user.avatar_url || 'https://via.placeholder.com/40'}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+            <div>
+                <div style="font-weight:600; font-size:14px; color:#fff;">${user.username}</div>
+                <div style="color:#8e8e8e; font-size:12px;">${user.full_name || ''}</div>
+            </div>
+        `;
+        userRow.addEventListener('click', () => {
+            openChatRoom(user);
+        });
+        resultsContainer.appendChild(userRow);
+    });
+}
+
+// --- 7. TELEGRAM-STYLE CHATS & REAL-TIME MESSAGING ---
 async function loadChatsList() {
     const { data: profiles } = await supabaseClient.from('profiles').select('*').neq('id', currentUser.id);
     const chatsListContainer = document.getElementById('chats-list-container');
@@ -338,13 +355,13 @@ async function loadChatsList() {
             const chatRow = document.createElement('div');
             chatRow.style.cssText = 'display:flex; align-items:center; padding:12px 16px; gap:15px; cursor:pointer; border-bottom:1px solid #18222d;';
             chatRow.innerHTML = `
-                <img src="${user.avatar_url || 'https://via.placeholder.com/50'}" style="width:50px;height:50px;border-radius:50%;">
+                <img src="${user.avatar_url || 'https://via.placeholder.com/50'}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;">
                 <div style="flex:1;">
                     <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                         <span style="font-weight:600; color:#fff; font-size:15px;">${user.username}</span>
-                        <span style="color:#8596a5; font-size:12px;">recent</span>
+                        <span style="color:#8596a5; font-size:12px;">online</span>
                     </div>
-                    <div style="color:#8596a5; font-size:13px;">Tap to open chat...</div>
+                    <div style="color:#8596a5; font-size:13px;">Tap to chat...</div>
                 </div>
             `;
             chatRow.addEventListener('click', () => openChatRoom(user));
@@ -353,14 +370,14 @@ async function loadChatsList() {
     }
 }
 
-let activeChatUser = null;
-
 function openChatRoom(user) {
     activeChatUser = user;
+    document.getElementById('subpage-chats').classList.remove('active');
     document.getElementById('subpage-chat-room').classList.add('active');
     document.getElementById('chatroom-username').innerText = user.username;
     document.getElementById('chatroom-user-pic').src = user.avatar_url || 'https://via.placeholder.com/40';
     loadMessages(user.id);
+    setupRealtimeMessages();
 }
 
 async function loadMessages(receiverId) {
@@ -381,19 +398,56 @@ async function loadMessages(receiverId) {
                 <div class="dog-sticker" id="send-dog-greeting">🐶 Hi</div>
             </div>
         `;
-        document.getElementById('send-dog-greeting').addEventListener('click', () => {
-            sendMessage('🐶 Hi sticker');
-        });
+        const dogEl = document.getElementById('send-dog-greeting');
+        if(dogEl) {
+            dogEl.addEventListener('click', () => {
+                sendMessage('🐶 Hi sticker');
+            });
+        }
     } else {
         data.forEach(msg => {
-            const bubble = document.createElement('div');
-            const isMe = msg.sender_id === currentUser.id;
-            bubble.style.cssText = `margin:6px 0; padding:8px 12px; border-radius:8px; max-width:70%; word-break:break-word; font-size:14px; ${isMe ? 'background:#2b5278; color:#fff; margin-left:auto;' : 'background:#18222d; color:#fff;'}`;
-            bubble.innerText = msg.message;
-            container.appendChild(bubble);
+            appendMessageBubble(msg);
         });
         container.scrollTop = container.scrollHeight;
     }
+}
+
+function appendMessageBubble(msg) {
+    const container = document.getElementById('chat-messages-container');
+    // Remove no-messages box if present
+    const noMsgBox = container.querySelector('.no-messages-box');
+    if (noMsgBox) noMsgBox.remove();
+
+    const bubble = document.createElement('div');
+    const isMe = msg.sender_id === currentUser.id;
+    bubble.style.cssText = `margin:6px 0; padding:8px 12px; border-radius:8px; max-width:70%; word-break:break-word; font-size:14px; ${isMe ? 'background:#2b5278; color:#fff; margin-left:auto;' : 'background:#18222d; color:#fff;'}`;
+    bubble.innerText = msg.message;
+    container.appendChild(bubble);
+    container.scrollTop = container.scrollHeight;
+}
+
+// Real-time listener using Supabase Channel
+function setupRealtimeMessages() {
+    if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+
+    realtimeChannel = supabaseClient.channel('realtime-messages')
+        .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'messages' 
+        }, (payload) => {
+            const newMsg = payload.new;
+            if (activeChatUser && (
+                (newMsg.sender_id === currentUser.id && newMsg.receiver_id === activeChatUser.id) ||
+                (newMsg.sender_id === activeChatUser.id && newMsg.receiver_id === currentUser.id)
+            )) {
+                // Prevent duplicate appending if we just sent it
+                if (newMsg.sender_id !== currentUser.id) {
+                    appendMessageBubble(newMsg);
+                }
+            }
+        })
+        .subscribe();
 }
 
 document.getElementById('btn-send-message').addEventListener('click', () => {
@@ -406,11 +460,16 @@ document.getElementById('btn-send-message').addEventListener('click', () => {
 
 async function sendMessage(text) {
     if (!activeChatUser) return;
+    const msgObj = { sender_id: currentUser.id, receiver_id: activeChatUser.id, message: text };
+    
+    // Append locally immediately for instant feedback
+    appendMessageBubble(msgObj);
+
     const { error } = await supabaseClient
         .from('messages')
-        .insert([{ sender_id: currentUser.id, receiver_id: activeChatUser.id, message: text }]);
+        .insert([msgObj]);
 
-    if (!error) {
-        loadMessages(activeChatUser.id);
+    if (error) {
+        alert('Message send failed: ' + error.message);
     }
-}
+                           }
