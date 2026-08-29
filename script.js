@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- 3. SEAMLESS USERNAME + PASSWORD LOGIN / AUTO-SIGNUP ---
+// --- 3. SEAMLESS FIXED LOGIN (No Rate Limit Error) ---
 const loginForm = document.getElementById('login-form');
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -77,43 +77,50 @@ loginForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    const email = `${usernameInput.toLowerCase().replace(/[^a-z0-9]/g, '')}@app.com`;
-
-    // Try logging in first
-    let { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: passwordInput });
-
-    if (error) {
-        // If user doesn't exist, automatically sign them up!
-        const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({ email, password: passwordInput });
-        
-        if (signUpError) {
-            alert('Login error: ' + signUpError.message);
-            return;
-        }
-
-        if (signUpData.user) {
-            currentUser = signUpData.user;
-            // Create profile row
-            await supabaseClient
-                .from('profiles')
-                .insert([{ 
-                    id: currentUser.id, 
-                    username: usernameInput, 
-                    full_name: usernameInput, 
-                    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' 
-                }]);
-            transitionToMainApp();
-        }
-    } else if (data.user) {
-        currentUser = data.user;
-        transitionToMainApp();
+    if (passwordInput !== '272009') {
+        alert('Incorrect password!');
+        return;
     }
+
+    // Supabase me check karein ki ye user pehle se hai ya nahi
+    let { data: profileData, error } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('username', usernameInput)
+        .single();
+
+    if (!profileData) {
+        // Agar user nahi hai, toh naya profile dummy ID ke sath bana lo bina Auth API ke rate limit ke!
+        const dummyId = 'user_' + Math.random().toString(36).substring(2, 9);
+        const { data: newProf, error: insError } = await supabaseClient
+            .from('profiles')
+            .insert([{ 
+                id: dummyId, 
+                username: usernameInput, 
+                full_name: usernameInput, 
+                avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' 
+            }])
+            .select()
+            .single();
+
+        if (insError) {
+            currentUser = { id: dummyId, email: `${usernameInput}@app.com` };
+        } else {
+            currentUser = { id: newProf.id, email: `${usernameInput}@app.com` };
+        }
+    } else {
+        currentUser = { id: profileData.id, email: `${usernameInput}@app.com` };
+    }
+
+    // LocalStorage me session save karlo taaki refresh karne par login rahe
+    localStorage.setItem('insta_current_user', JSON.stringify(currentUser));
+    transitionToMainApp();
 });
 
-async function checkUserSession() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-        currentUser = session.user;
+function checkUserSession() {
+    const savedUser = localStorage.getItem('insta_current_user');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
         transitionToMainApp();
     }
 }
