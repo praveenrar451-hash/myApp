@@ -10,7 +10,7 @@
 </head>
 <body class="dark-theme">
 
-    <!-- LOGIN PAGE -->
+    <!-- LOGIN PAGE (Username & Password only) -->
     <div id="login-page" class="page active">
         <div class="login-container">
             <div class="language-selector">English (India) <i class="fa-solid fa-chevron-down"></i></div>
@@ -18,21 +18,18 @@
                 <i class="fa-brands fa-instagram"></i>
             </div>
             <form id="login-form">
-                <input type="text" id="login-email" placeholder="Username, email address or mobile number" required>
+                <input type="text" id="login-username" placeholder="Username" required>
                 <input type="password" id="login-password" placeholder="Password" required>
                 <button type="submit" class="btn-primary">Log in</button>
             </form>
-            <a href="#" class="forgot-pass">Forgotten password?</a>
-            <div class="create-account-box">
-                <button type="button" class="btn-outline" id="show-signup-btn">Create new account</button>
-            </div>
+            <p class="login-hint">Enter any username & password to log in or create an account instantly.</p>
         </div>
     </div>
 
-    <!-- MAIN APP CONTAINER (Hidden until login) -->
+    <!-- MAIN APP CONTAINER -->
     <div id="main-app" class="page">
         
-        <!-- TOP NAVBAR (Home / Profile) -->
+        <!-- TOP NAVBAR -->
         <header class="top-nav" id="top-navbar">
             <div class="top-left">
                 <i class="fa-solid fa-plus" id="btn-create"></i>
@@ -56,11 +53,8 @@
                         <div class="story-ring plus"><img src="https://via.placeholder.com/60" alt=""><i class="fa-solid fa-plus"></i></div>
                         <span>Your story</span>
                     </div>
-                    <!-- Dynamic Stories will load here -->
                 </div>
-                <div class="posts-feed" id="posts-feed-container">
-                    <!-- Dynamic Posts from database -->
-                </div>
+                <div class="posts-feed" id="posts-feed-container"></div>
             </div>
 
             <!-- REELS VIEW -->
@@ -69,9 +63,7 @@
                     <span>Reels</span>
                     <span class="text-muted">Friends</span>
                 </div>
-                <div class="reels-container" id="reels-feed-container">
-                    <!-- Dynamic Reels -->
-                </div>
+                <div class="reels-container" id="reels-feed-container"></div>
             </div>
 
             <!-- SEARCH / EXPLORE VIEW -->
@@ -81,9 +73,7 @@
                     <input type="text" id="search-users-input" placeholder="Search users...">
                 </div>
                 <div class="search-results-list" id="search-results"></div>
-                <div class="explore-grid" id="explore-grid-container">
-                    <!-- Dynamic Explore Grid -->
-                </div>
+                <div class="explore-grid" id="explore-grid-container"></div>
             </div>
 
             <!-- PROFILE VIEW -->
@@ -121,9 +111,7 @@
                     <i class="fa-solid fa-clapperboard"></i>
                     <i class="fa-solid fa-id-card"></i>
                 </div>
-                <div class="profile-posts-grid" id="my-profile-grid">
-                    <!-- User's posts -->
-                </div>
+                <div class="profile-posts-grid" id="my-profile-grid"></div>
             </div>
 
         </div>
@@ -168,12 +156,10 @@
                     <input type="text" placeholder="Search Chats">
                 </div>
             </div>
-            <div class="chats-list" id="chats-list-container">
-                <!-- Chat items -->
-            </div>
+            <div class="chats-list" id="chats-list-container"></div>
         </div>
 
-        <!-- INSIDE CHAT WINDOW -->
+        <!-- INSIDE CHAT ROOM -->
         <div class="sub-page" id="subpage-chat-room">
             <div class="sub-header chat-room-header">
                 <i class="fa-solid fa-arrow-left" id="btn-close-chatroom"></i>
@@ -218,9 +204,7 @@
                 <span>Recents <i class="fa-solid fa-chevron-down"></i></span>
                 <button class="btn-select-multi"><i class="fa-regular fa-images"></i> Select</button>
             </div>
-            <div class="gallery-grid" id="device-gallery-grid">
-                <!-- Gallery items thumbnails -->
-            </div>
+            <div class="gallery-grid" id="device-gallery-grid"></div>
             <div class="create-bottom-tabs">
                 <span class="active">POST</span>
                 <span>STORY</span>
@@ -243,7 +227,7 @@
     </div>
 
     <!-- Supabase CDN -->
-    <script src="https://cdn.jsdelivr.com/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
 </html>
